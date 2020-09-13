@@ -6,8 +6,6 @@
 namespace intrusive
 {
     struct default_tag;
-    struct cnst;
-    struct non_cnst;
 
     template <typename Tag = default_tag>
     struct list_element {
@@ -230,7 +228,7 @@ namespace intrusive
             mut_first->prev->next = &*mut_last;
             prev_last->next = &*mut_pos;
             mut_first->prev = &*mut_pos->prev;
-            prev_last->next->prev = &*mut_prev_last;
+            prev_last->next->prev = &*prev_last;
             mut_first->prev->next = &*mut_first;
         }
     private:
