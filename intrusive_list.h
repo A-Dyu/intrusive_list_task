@@ -97,7 +97,7 @@ namespace intrusive
         template<typename _T, typename _Tag>
         friend struct list;
     private:
-        explicit list_iterator(list_element<Tag>* el) noexcept : element(el) {}
+        explicit list_iterator(list_element<Tag> const* el) noexcept : element(const_cast<list_element<Tag>*>(el)) {}
         list_element<Tag>* element;
     };
 
@@ -111,91 +111,94 @@ namespace intrusive
                       "value type is not convertible to list_element");
 
         list() {
-            node = new list_element<Tag>();
-            node->next = node;
-            node->prev = node;
+            node = list_element<Tag>();
+            node.next = &node;
+            node.prev = &node;
         }
 
         list(list const&) = delete;
 
-        list(list&& r_list) noexcept : list() {
-            std::swap(node, r_list.node);
+        list(list&& r_list) noexcept : list(){
+            if (!r_list.empty()) {
+                move_node(r_list);
+            }
         }
 
-        ~list() {
-            delete(node);
-        }
+        ~list() = default;
 
         list& operator=(list const&) = delete;
 
         list& operator=(list&& r_list) noexcept {
-            clear();
-            std::swap(node, r_list.node);
+            if (!r_list.empty()) {
+                move_node(r_list);
+            } else {
+                clear();
+            }
             return *this;
         }
 
         void clear() noexcept {
-            node->prev = node->next = node;
+            node.prev = node.next = &node;
         }
 
         void push_back(T& element) noexcept {
-            node->prev->next = static_cast<list_element<Tag>*>(&element);
-            element.list_element<Tag>::prev = node->prev;
-            element.list_element<Tag>::next = node;
-            node->prev = static_cast<list_element<Tag>*>(&element);
+            node.prev->next = static_cast<list_element<Tag>*>(&element);
+            element.list_element<Tag>::prev = node.prev;
+            element.list_element<Tag>::next = &node;
+            node.prev = static_cast<list_element<Tag>*>(&element);
         }
 
         void pop_back() noexcept {
-            node->prev = node->prev->prev;
-            node->prev->next = node;
+            node.prev = node.prev->prev;
+            node.prev->next = &node;
         }
 
         T& back() noexcept {
-            return *static_cast<T*>(node->prev);
+            return *static_cast<T*>(node.prev);
         }
 
         T const& back() const noexcept {
-            return *static_cast<T*>(node->prev);
+            return *static_cast<T*>(node.prev);
         }
 
         void push_front(T& element) noexcept {
-            node->next->prev = static_cast<list_element<>*>(&element);
-            element.next = node->next;
-            node->next = static_cast<list_element<>*>(&element);;
-            element.prev = node;
+            node.next->prev = static_cast<list_element<>*>(&element);
+            element.next = node.next;
+            node.next = static_cast<list_element<>*>(&element);;
+            element.prev = &node;
         };
 
         void pop_front() noexcept {
-            node->next = node->next->next;
-            node->next->prev = node;
+            node.next = node.next->next;
+            node.next->prev = &node;
         }
 
         T& front() noexcept {
-            return *static_cast<T*>(node->next);
+            return *static_cast<T*>(node.next);
         }
 
         T const& front() const noexcept {
-            return *static_cast<T*>(node->next);
+            return *static_cast<T*>(node.next);
         }
 
         bool empty() const noexcept {
-            return node->next == node;
+            return node.next == &node;
         }
 
         iterator begin() noexcept {
-            return iterator(node->next);
+            return iterator(node.next);
         }
 
         const_iterator begin() const noexcept {
-            return iterator(node->next);
+            return const_iterator(node.next);
         }
 
         iterator end() noexcept {
-            return iterator(node);
+            return iterator(&node);
         }
 
         const_iterator end() const noexcept {
-            return iterator(node);
+            return const_iterator(&node);
         }
 
         iterator insert(const_iterator pos, T& element) noexcept {
@@ -232,7 +235,14 @@ namespace intrusive
             mut_first->prev->next = &*mut_first;
         }
     private:
-        list_element<Tag>* node;
+        list_element<Tag> node;
+
+        void move_node(list& r_list) {
+            node = r_list.node;
+            r_list.clear();
+            node.next->prev = &node;
+            node.prev->next = &node;
+        }
     };
 
 
