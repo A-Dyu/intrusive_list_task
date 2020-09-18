@@ -169,8 +169,7 @@ namespace intrusive
         };
 
         void pop_front() noexcept {
-            node.next = node.next->next;
-            node.next->prev = &node;
+            node.next->unlink();
         }
 
         T& front() noexcept {
